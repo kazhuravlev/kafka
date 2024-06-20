@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"io"
 	"log/slog"
 	"time"
@@ -56,6 +58,21 @@ type JSONDecoder struct{}
 
 func (d *JSONDecoder) Decode(_ []Header, src []byte, res any) error {
 	if err := json.Unmarshal(src, res); err != nil {
+		return fmt.Errorf("unmarshal json message: %w", err)
+	}
+
+	return nil
+}
+
+type ProtoJSONDecoder struct{}
+
+func (d *ProtoJSONDecoder) Decode(_ []Header, src []byte, res any) error {
+	mm, ok := res.(proto.Message)
+	if !ok {
+		return fmt.Errorf("target type should be a `proto.Message`")
+	}
+
+	if err := protojson.Unmarshal(src, mm); err != nil {
 		return fmt.Errorf("unmarshal json message: %w", err)
 	}
 
