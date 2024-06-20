@@ -40,6 +40,8 @@ func NewOptions(
 
 	o.commitInterval = defaultOptions.commitInterval
 
+	o.decoder = defaultOptions.decoder
+
 	for _, opt := range options {
 		opt(&o)
 	}
@@ -121,6 +123,13 @@ func WithRetentionTime(opt time.Duration) OptOptionsSetter {
 func WithCommitInterval(opt time.Duration) OptOptionsSetter {
 	return func(o *Options) {
 		o.commitInterval = opt
+
+	}
+}
+
+func WithDecoder(opt IDecoder) OptOptionsSetter {
+	return func(o *Options) {
+		o.decoder = opt
 
 	}
 }

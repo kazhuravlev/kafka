@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -77,4 +78,38 @@ func (d *ProtoJSONDecoder) Decode(_ []Header, src []byte, res any) error {
 	}
 
 	return nil
+}
+
+// HeaderDependantDecoder allows you to specify which decoder will be used to decode each message.
+type HeaderDependantDecoder struct {
+	// Name of header that we will check.
+	HeaderName string
+	// Header value to Decoder mapping.
+	Decoders map[string]IDecoder
+	// Will be used in case if message have no headers, or we have no corresponding mapping in Decoders map.
+	DefaultDecoder IDecoder
+}
+
+func (d *HeaderDependantDecoder) Decode(headers []Header, src []byte, res any) error {
+	for _, hdr := range headers {
+		if hdr.Key != d.HeaderName {
+			continue
+		}
+
+		decoder, ok := d.Decoders[string(hdr.Value)]
+		if !ok {
+			return d.DefaultDecoder.Decode(headers, src, res)
+		}
+
+		return decoder.Decode(headers, src, res)
+	}
+
+	return d.DefaultDecoder.Decode(headers, src, res)
+}
+
+// AlwaysFailDecoder will always return error. Useful for testing and HeaderDependantDecoder.DefaultDecoder.
+type AlwaysFailDecoder struct{}
+
+func (d *AlwaysFailDecoder) Decode(_ []Header, _ []byte, _ any) error {
+	return errors.New("it is the trap")
 }
