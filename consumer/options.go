@@ -3,6 +3,8 @@ package consumer
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"time"
@@ -23,6 +25,7 @@ type Options struct {
 	retentionTime time.Duration
 	// 0 - means sync mode.
 	commitInterval time.Duration
+	decoder        IDecoder
 }
 
 var defaultOptions = Options{ //nolint:gochecknoglobals
@@ -37,9 +40,24 @@ var defaultOptions = Options{ //nolint:gochecknoglobals
 	maxWait:        10 * time.Second,
 	retentionTime:  24 * time.Hour,
 	commitInterval: 0,
+	decoder:        new(JSONDecoder),
 }
 
 type ILogger interface {
 	WarnContext(ctx context.Context, msg string, attrs ...any)
 	ErrorContext(ctx context.Context, msg string, attrs ...any)
+}
+
+type IDecoder interface {
+	Decode(headers []Header, value []byte, dst any) error
+}
+
+type JSONDecoder struct{}
+
+func (d *JSONDecoder) Decode(_ []Header, src []byte, res any) error {
+	if err := json.Unmarshal(src, res); err != nil {
+		return fmt.Errorf("unmarshal json message: %w", err)
+	}
+
+	return nil
 }

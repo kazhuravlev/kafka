@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/segmentio/kafka-go"
 	"log/slog"
 )
@@ -28,7 +27,7 @@ func (c *Consumer[T]) runConsumer(ctx context.Context, kfkReader *kafka.Reader) 
 			}
 
 			var payload T
-			if err := json.Unmarshal(message.Value, &payload); err != nil {
+			if err := c.opts.decoder.Decode(message.Headers, message.Value, &payload); err != nil {
 				c.opts.logger.ErrorContext(ctx, "unmarshal message",
 					slog.String("error", err.Error()),
 					slog.String("msg", string(message.Value)))
